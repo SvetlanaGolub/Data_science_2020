@@ -1,4 +1,4 @@
-1.
+1. address
 
 CREATE TABLE public.address
 (
@@ -14,7 +14,7 @@ TABLESPACE pg_default;
 ALTER TABLE public.address
     OWNER to postgres;
 
-2.
+2. aggregator_users
 
 CREATE TABLE public.aggregator_users
 (
@@ -37,7 +37,7 @@ TABLESPACE pg_default;
 ALTER TABLE public.aggregator_users
     OWNER to postgres;
 
-3. 
+3. boarding_data
 
 CREATE TABLE public.boarding_data
 (
@@ -64,15 +64,15 @@ ALTER TABLE public.boarding_data
     OWNER to postgres;
 
 
-4. 
+4. boarding_pass
 
 CREATE TABLE public.boarding_pass
 (
     pass_id integer NOT NULL,
     first_name text COLLATE pg_catalog."default" NOT NULL,
     last_name text COLLATE pg_catalog."default" NOT NULL,
-    from_city text COLLATE pg_catalog."default",
-    to_city text COLLATE pg_catalog."default",
+    from_airport text COLLATE pg_catalog."default",
+    to_airport text COLLATE pg_catalog."default",
     date date,
     "time" time without time zone,
     flight_number text COLLATE pg_catalog."default",
@@ -89,8 +89,7 @@ TABLESPACE pg_default;
 ALTER TABLE public.boarding_pass
     OWNER to postgres;
 
-
-5.
+5. flights
 
 CREATE TABLE public.flights
 (
@@ -125,7 +124,7 @@ ALTER TABLE public.flights
     OWNER to postgres;
 
 
-6.
+6. forum_profiles
 
 CREATE TABLE public.forum_profiles
 (
@@ -142,7 +141,7 @@ ALTER TABLE public.forum_profiles
     OWNER to postgres;
 
 
-7.
+7. russian_flights
 
 CREATE TABLE public.russian_flights
 (
