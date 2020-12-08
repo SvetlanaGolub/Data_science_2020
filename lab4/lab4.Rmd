@@ -1,0 +1,196 @@
+---
+title: "Лабораторная работа №4"
+author: "Голуб Светлана"
+output:
+  word_document
+---
+  
+# K-means  
+  
+**Метод K-средних** (k-means) - метод кластеризации, алгоритм которого стремиться минимизировать суммарное квадратичное отклонение точек кластеров от центров этих кластеров.
+
+a. Объединяем штаты в кластеры и создаём диаграмму кластеро:  
+
+
+```{r}
+load("D:/MyDoc/Desktop/MEPhI/data_science/lab4/income_elec_state.Rdata")
+income <- income_elec_state$income
+elec <- income_elec_state$elec
+test <- scale(income_elec_state)
+income_elec_state.km <-  kmeans(income_elec_state, 10)
+income_elec_state.cl <- income_elec_state.km$cluster
+plot(income, elec, col = income_elec_state.cl, xlab="Mean household income", ylab="Mean electricity usage", main="K-means")
+points(income_elec_state.km$centers, col=1:10, pch=8)
+```
+
+b. При повторном выполнении кластеризации мы можем получить другое разбиение. Это происходит из-за того, что на первом шаге алгоритма выбираются произвольные центры, а количеcтво итераций алгоритма по умолчанию равно 10, что иногда прерывает алгоритм до того, как он найдёт наилучшее разбиение.  
+Для того, чтобы снизить вероятность изменения разбиения, можно увеличить значение параметра nstart (количество запусков алгоритма на случайных числах) и увеличит значение iter.max
+(максимальное количество итераций)  
+
+
+```{r}
+income_elec_state.km <-  kmeans(income_elec_state, 10, nstart = 20, iter.max = 20)
+income_elec_state.cl <- income_elec_state.km$cluster
+plot(income, elec, col = income_elec_state.cl, xlab="Mean household income", ylab="Mean electricity usage", main="K-means")
+points(income_elec_state.km$centers, col=1:10, pch=8)
+```
+
+
+Теперь при каждом следующем запуске алгоритма разбиение на кластеры одинаковое  
+
+с. По диаграмме кластеров можно заметить, что разбиение не является оптимальным. Для того, чтобы найти наиболее подходящее число кластеров для разбиения, воспользуемся методом "локтя".   
+
+```{r}
+library(factoextra)
+fviz_nbclust(income_elec_state, kmeans, method = "wss")
+
+```
+
+На графике виден чёткий перелом в районе значений 2-5. 
+
+- Разделим на 2 кластера
+```{r}
+income_elec_state.km <-  kmeans(income_elec_state, 2, nstart = 20, iter.max = 20)
+income_elec_state.cl <- income_elec_state.km$cluster
+plot(income, elec, col = income_elec_state.cl, xlab="Mean household income", ylab="Mean electricity usage", main="K-means")
+points(income_elec_state.km$centers, col=1:10, pch=8)
+```
+
+
+При таком разделении точка-выброс включена в один из общих кластеров. Такого быть не должно.
+
+- Разделим на 3 кластера
+
+```{r}
+income_elec_state.km <-  kmeans(income_elec_state, 3, nstart = 20, iter.max = 20)
+income_elec_state.cl <- income_elec_state.km$cluster
+plot(income, elec, col = income_elec_state.cl, xlab="Mean household income", ylab="Mean electricity usage", main="K-means")
+points(income_elec_state.km$centers, col=1:10, pch=8)
+```
+
+
+Проблема осталась та же.  
+
+-Разделим на 4 кластера
+
+```{r}
+income_elec_state.km <-  kmeans(income_elec_state, 4, nstart = 20, iter.max = 20)
+income_elec_state.cl <- income_elec_state.km$cluster
+plot(income, elec, col = income_elec_state.cl, xlab="Mean household income", ylab="Mean electricity usage", main="K-means")
+points(income_elec_state.km$centers, col=1:10, pch=8)
+```
+
+Разделение выглядит оптимальным.
+
+с. Преобразуем наши данные в логарифмический машстаб и посмотрим, изменилась ли диаграмма кластеризации:
+
+```{r}
+income_elec <- income_elec_state
+income_elec[,c(1,2)] <- log10(income_elec[,c(1,2)])
+income_elec.km <-  kmeans(income_elec, 5, nstart = 20, iter.max = 20)
+income_elec.cl <- income_elec.km$cluster
+plot(income_elec$income, income_elec$elec, col = income_elec.cl, xlab="Mean household income", ylab="Mean electricity usage", main="K-means for log")
+points(income_elec.km$centers, col=1:10, pch=8)
+```
+
+Дигарамма изменилась, так как алгоритм k-means чувствителен к любому масштабированию. Результат получится иным, даже если мы одинаково трансформируем все данные.
+
+e. Посмотрим, как изменилось оптимальное количество кластеров: 
+
+```{r}
+fviz_nbclust(income_elec, kmeans, method = "wss")
+```
+
+Не совсем понятно, какое количество кластеров лучше подходит. Попробуем использовать другой метод:
+  
+```{r}
+fviz_nbclust(income_elec, kmeans, method = "silhouette")
+```
+
+Видим, что 5 кластеров наиболее оптимальное количество. Строим диаграмму кластеров:
+  
+```{r}
+income_elec.km <-  kmeans(income_elec, 5, nstart = 20, iter.max = 20)
+income_elec.cl <- income_elec.km$cluster
+plot(income_elec$income, income_elec$elec, col = income_elec.cl, xlab="Mean household income", ylab="Mean electricity usage", main="K-means for log")
+points(income_elec.km$centers, col=1:10, pch=8)
+```
+
+f. В наших данных легко можно заметить выброс - крайняя левая точка. Попробуем убрать Пуэрто-Рико и пересмотреть количество кластеров:
+  
+```{r}
+income_elec <- subset(income_elec, income_elec$income > 4.5)
+fviz_nbclust(income_elec, kmeans, method = "wss")
+```
+
+По графику видно, что оптимальное значение количества кластеров - 4.
+
+```{r}
+income_elec.km <-  kmeans(income_elec, 4, nstart = 10, iter.max = 10)
+income_elec.cl <- income_elec.km$cluster
+plot(income_elec$income, income_elec$elec, col = income_elec.cl, xlab="Mean household income", ylab="Mean electricity usage", , main="K-means filtered log")
+points(income_elec.km$centers, col=1:10, pch=8)
+```
+
+
+g. Изобразим принадлежности штатов к кластерам на карте США:
+
+```{r}
+library(maps)
+map_order <- c('AL', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'DC', 'FL',
+'GA', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME',
+'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV',
+'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR',
+'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA',
+'WA', 'WV', 'WI', 'WY')
+map_color <- income_elec.km$cluster[map_order]
+map('state', col=map_color, fill=TRUE)
+title("K-means for USA")
+```
+
+
+# Hierarchical clustering 
+
+**Иерархическая кластеризация** (Hierarchical clustering) - метод кластеризации, направленный на создание иерарии вложенных кластеров.
+
+a. Для начала построим дендрограмму по исходным данны:
+  
+```{r}
+library(dendextend)
+hc <- hclust(dist(income_elec_state))
+tree <- as.dendrogram(hc)
+tree <- color_branches(tree, k = 4)
+tree %>% set("labels_col", k=4) %>% set("labels_cex", 0.7) %>% plot(main="Hierarchical clustering")
+```
+
+На диаграмме кластеров можно увидеть, как были объеденены штаты: 
+
+```{r}
+sub_grp <- cutree(hc, k=4)
+plot(income_elec_state, pch=20, col=sub_grp, main="Hierarchical clustering", xlab="Mean household income", ylab="Mean electricity usage")
+```
+
+b. Теперь построим дендрограмму на основе отчищенных данных, приведённых к логорифмическому масштабу:
+
+```{r}
+hc_new <- hclust(dist(income_elec), method = "single")
+tree <- as.dendrogram(hc_new)
+tree <- color_branches(tree, k = 4)
+tree %>% set("labels_col", k=4) %>% set("labels_cex", 0.7) %>% plot(main = "Hierarchical clustering")
+```
+
+На диаграмме кластеров можно увидеть, как были объеденены штаты: 
+
+```{r}
+sub_grp_new <- cutree(hc_new, k=4)
+plot(income_elec, pch=20, col=sub_grp_new, main = "Hierarchical clustering", xlab="Mean household income", ylab="Mean electricity usage")
+```
+
+c. Изобразим результат иерархической кластеризации на карте США:
+
+```{r}
+map_color <- sub_grp_new[map_order]
+map('state', col=map_color, fill=TRUE)
+title("Hierarchical clustering")
+```
+

@@ -1,0 +1,202 @@
+---
+title: "Лабораторная работа №5"
+author: "Голуб Светлана"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+editor_options:
+  chunk_output_type: inline
+always_allow_html: true
+---
+
+## Базовые понятия
+
+**Ассоциативные правила** - описание связей между переменными в ннекотором списке транзакций. Они используются для нахождения абстрактных ассоциаций в датасете, которые используются в дальнейшем анализе данных.
+
+**Support (поддержка)** - частота появления множества элементов во всех анализируемых транзакциях.
+
+**Confidence (достоверность)** - показатель того, как часто правило сробатывает для всего датасета. Чем больше Confidence, тем интереснее правило.
+
+**Lift** - показатель того, насколько элементы в множестве зависят друг от друга. Чем больше lift, тем больше элементы зависят друг от друга и тем сильнее правило.
+
+## Ход работы
+Для начала необходимо выгрузить данные из csv файла в виде объекта класса транзакций:
+```{r}
+library(arules)
+Associations <- read.transactions("AssociationRules.csv", header = FALSE)
+```
+
+a. Построим диаграмму частоты появления каждого элемента в транзакциях:
+
+```{r}
+itemFrequencyPlot(Associations, topN=10, type="absolute", main="Item Frequency")
+```
+
+Наиболее часто встречается: **item13**
+
+b. Выведем общий отчёт по нашим данным:
+
+```{r}
+summary(Associations)
+```
+
+Из отчёта видим, что в наибольшей транзакции было **25 элементов**
+
+Выводим правила с минимальной поддержкой - 1% и с минимальной достоверностью - 0%. Для этого используем алгоритм Априори (если множестово элементов встречается часто, то любое подмножество так же встречается часто): 
+
+```{r paged.print=FALSE}
+rules = apriori(data = Associations, parameter = list(support = 0.01, confidence = 0))
+```
+
+При таких параметрах мы получаем **11524** правил
+
+Изменим минимальный процент Confidence на 50%:
+
+```{r paged.print=FALSE}
+rules = apriori(data = Associations, parameter = list(support = 0.01, confidence = 0.5))
+```
+
+Получили **1165** правил.
+
+e. С увиличением параметра Confidence количество правил уменьшается, так как повышается минимальная частота срабатывания правила на всём датасете.
+
+f. Создадим диаграмму зависимости Support от Confidence с затемнением значений по шкале lift:
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+library(arulesViz)
+plot(rules, measure = c("support", "confidence"), shading = "lift", main = "Compare support and confidence")
+```
+
+Наиболее интересные правила расположены на границе Support и Confidence Чем больше Support, тем чаще оно всетречается в датасете. Чем больше Confidence правила, тем оно чаще срабатывает.
+
+g. Создадим диаграмму зависимости Support от lift с затемнением значений по шкале Confidence:
+
+```{r message=FALSE, warning=TRUE}
+plot(rules, measure = c("support", "lift"), shading = "confidence", main = "Compare support and lift")
+```
+
+h. Наиболее сильные правила расположены в левом верхнем углу диаграммы. Чем больще lift, тем сильнее элементы зависят друг от друга.
+
+i. Главный недостаток алгоритма состоит в том, что генерируется большое количество неинтересных правил, которые занимают память и на которые тратится относительно много времени.
+
+j. Для того, чтобы использовать интерактивный режим диаграммы, необходимо добавить параметр engine = "htmlwidget" или engine='interactive':
+
+1. **engine = "htmlwidget"**
+
+```{r}
+plot(rules, measure = c("support", "lift"), shading = "confidence", main = "Compare support and lift",  engine = "htmlwidget")
+```
+
+2. **engine='interactive'**
+
+plot(rules, measure = c("support", "lift"), shading = "confidence", main = "Compare support and lift",  engine='interactive')
+
+
+Выделяем правила, Support которых больше **10%**:
+- {item5}  => {item13}
+- {item30} => {item13}
+- {item58} => {item13}
+
+Рассмотрим правила, в которых Confidence больше 80%:
+
+```{r paged.print=FALSE}
+rules = apriori(data = Associations, parameter = list(support = 0.01, confidence = 0.8))
+```
+
+Отсортируем по значению lift:
+
+```{r}
+rules.sorted <- sort(rules, decreasing = TRUE, na.last = NA, by = "lift")
+inspect(rules.sorted)
+```
+
+Также работать с правилами (сортировка/фильтрация) в интерактивном формате можно с помощью функции inspectDT().
+
+Правила с небольшим значением параметра lift являются достаточно случайными, то есть элементы в этом правиле совпали случайно, потому что просто часто встречаются сами по себе. 
+
+l. Построим диаграмму в матричном виде на основе confidence и lift:
+
+```{r}
+plot(rules, method="matrix", measure=c("lift", "support"), shading = c("lift", "confidence"), reorder=FALSE)
+```
+
+Наиболее интересными для нас правилами являются те, цвет которых тёмно-зелёный или тёмно-красный. Эти цвета значат, что эти правила встречаются достаточно часто и являются достаточно независимыми друг от друга.
+
+m. Правила тёмно-синего цвета встречаются часто, но элементы в этом правиле сильно зависят друг от друга. То есть они появляются вместе из-за того, что часто встречаются в транзакциях сами по себе.
+
+n. Найдём 3 правила с наибольшим значением параметра lift:
+
+```{r paged.print=FALSE}
+rules = apriori(data = Associations, parameter = list(support = 0.01, confidence = 0))
+rules.filtrated <- head(rules, n = 3, by = "lift")
+```
+
+o. Визуализируем эти правила с помощью графов:
+
+```{r}
+inspect(rules.filtrated)
+```
+
+
+```{r}
+plot(rules.filtrated, method = "graph")
+```
+
+p. В процессе анализа данных стало ясно, что при увиличении количества элементов в правиле значение параметров Support и Confidence уменьшается. Это связано с тем, что элементы вместе встречаюся реже, чем сами по себе.
+
+
+Создадим обучающий набор из первых 8000 транзакций и тестовый набор на последних 2000:
+
+```{r}
+Associations.training <- head(Associations, n = 8000)
+Associations.testing <- tail(Associations, n = 2000)
+```
+
+Запустим алгоритм на каждом датасете:
+
+1. Обучающий набор:
+
+```{r paged.print=FALSE}
+rules.training <- apriori(data = Associations.training, parameter = list(support = 0.01, confidence = 0, minlen = 2))
+summary(rules.training)
+plot(rules.training)
+```
+
+2. Тестовый набор:
+
+```{r paged.print=FALSE}
+rules.testing <- apriori(data = Associations.testing, parameter = list(support = 0.01, confidence = 0, minlen = 2))
+summary(rules.testing)
+plot(rules.testing)
+```
+ 
+q. Краткий отчёт по получившимся правилам и диаграммы показали, что большинство правил, присутствующих в тренировочном наборе есть и в тестовом.
+
+r. Можно сделать вывод, что правила, которые работают для тестового набора, работают и для всего датасета.
+
+
+
+
+
+```{r}
+inspect(head(rules.testing, n = 50, by = "confidence" ))
+```
+
+```{r}
+same.testing <- intersect(rules.training, rules.testing)
+same.training <- intersect(rules.testing, rules.training)
+inspect(head(same.testing, n=20, by = "confidence"))
+inspect(head(same.training, n=20, by = "confidence"))
+
+```
+
+```{r}
+rules.training.top <- head(rules.training, n = 100, by = "confidence" )
+inspect(rules.training.top)
+```
+
+```{r}
+rules.same <- subset(rules.testing, rhs %in% rhs(rules.training.top) & lhs %in% lhs(rules.training.top))
+inspect(sort(rules.same, by = "confidence"))
+```

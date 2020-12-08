@@ -1,0 +1,80 @@
+---
+title: "Лабораторная работа 2-3"
+
+author: "Голуб Светлана"
+
+output: word_document
+---
+  
+Для начала необходимо загрузить данные из тестового файла. Это можно сделать с помощью функции read.table():
+```{r}
+ZipIncome <- read.table("zipIncome.txt", header = TRUE, sep = "|")
+```
+
+Затем нам необходимо переиминовать названия столбцов:
+```{r}
+names(ZipIncome) <- c("zipCode", "income")
+```
+
+  
+a. Для того, чтобы проанализировать имеющиеся данные, рациональнее всего использовать функцию summary():
+
+```{r}
+summary(ZipIncome)
+```
+
+Так же для получения медианы и среднего по нашим данным, можно использовать самостоятельные функции: median(), mean().
+
+>Медианна по исходным данным: `r as.integer(median(ZipIncome$income))`  
+>Среднее по исходным данным: `r as.integer(mean(ZipIncome$income))`
+  
+b. Для того, чтобы увидеть выбросы в данных, построим точечную диаграму:
+```{r}
+zipCode <- ZipIncome$zipCode
+income <- ZipIncome$income
+plot(zipCode, income, main = 'Average Household Income by Zip Code', xlab = 'Zip Codes', ylab = 'Income')
+```
+  
+Выбросы наблюдаются в столбце income: 250000 и 0.
+
+Для того, чтобы избавится от этих аномальных значений, необходимо отфильровать строки столбцу income:
+
+```{r}
+ZipIncome <- subset(ZipIncome, income > 7000 & income < 250000)
+```
+
+c. Пересчитаем среднее по отфильтрованным данным  
+
+> Новое среднее равно : `r as.integer(mean(ZipIncome$income))` 
+  
+d. Построим по нашим данным диаграмму размаха (box plot), чтобы увидеть медиану по каждой первой цифре почтового индекса:
+```{r}
+boxplot(income ~ zipCode, data = ZipIncome, main = 'Average Household Income by Zip Code', xlab = 'Zip Codes', ylab = 'Income')
+```
+
+e. Для того, чтобы дивграмма была понятнее, сделаем масштаб оси y логарифмическим:
+
+```{r}
+boxplot(income ~ zipCode, data = ZipIncome, main = 'Average Household Income by Zip Code', xlab = 'Zip Codes', ylab = 'Income', log = 'y')
+```
+
+Более гибки йинструментарий для построения диаграм предоставляет библиотека ggplot2.
+
+f. Создадим с помощью этой библиотеки аналогичную предыдущему пункту диаграмму:
+
+```{r}
+library(ggplot2)
+g = ggplot(data=ZipIncome, aes(x=as.factor(zipCode), y=income)) + labs(x="Zip Code", y="Income", title="Average Income by Zip Code") + scale_y_log10()
+g + geom_point(position="jitter", alpha=0.2)
+```
+
+g. Создадим новую диаграмму, которая будет включать в себя как точечную, так и диаграмму размаха (box plot):
+
+```{r}
+g + geom_point(aes(colour=factor(zipCode)), position="jitter", alpha=0.2) + geom_boxplot(alpha=0.1, outlier.size=-Inf) + labs(color="Region")
+```
+
+h. В результате анализа полученных данных, можно сделать следующие выводы:
+- для того, чтобы увидеть полунцю картину данных, неодходимо визуализировать данные разными способами
+- визуализация позволяет лучше понять, о чём говорят имеющиеся данные и донести результаты до заинтересованных сторон
+
